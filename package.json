@@ -1,0 +1,19 @@
+{
+  "name": "tailwindcss-as-a-service",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "micro"
+  },
+  "keywords": [],
+  "author": "Brad Cornes <bradlc41@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "micro": "^9.3.3",
+    "postcss": "^7.0.5",
+    "tailwindcss": "^0.6.6",
+    "tailwindcss-alpha": "^0.1.2",
+    "tailwindcss-aspect-ratio": "^1.0.1"
+  }
+}
