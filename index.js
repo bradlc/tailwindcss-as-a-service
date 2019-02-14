@@ -15,43 +15,52 @@ module.exports = async (req, serverRes) => {
     return defaultCss
   }
 
-  https
-    .get(`https://${parsed.hostname}/tailwind.js`, res => {
-      if (res.statusCode !== 200) {
-        return serverRes.end(defaultCss)
-      }
+  try {
+    let { data } = await get(`https://${parsed.hostname}/tailwind.js`)
 
-      res.setEncoding('utf8')
-      let rawData = ''
+    eval(
+      'var __tailwind_config__ = (function(module, process){' +
+        data +
+        ';return module.exports})({}, undefined)'
+    )
 
-      res.on('data', chunk => {
-        rawData += chunk
-      })
+    let style = '@tailwind preflight;@tailwind components;@tailwind utilities;'
+    let mainCss = await get(`https://${parsed.hostname}/tailwind.css`)
+    if (mainCss.headers['content-type'] === 'text/css') {
+      style = mainCss.data
+    }
 
-      res.on('end', () => {
-        try {
-          eval(
-            'var __tailwind_config__ = (function(module, process){' +
-              rawData +
-              ';return module.exports})({}, undefined)'
-          )
+    let { css } = await postcss([
+      require('tailwindcss')(__tailwind_config__)
+    ]).process(style)
 
-          postcss([require('tailwindcss')(__tailwind_config__)])
-            .process(
-              '@tailwind preflight;@tailwind components;@tailwind utilities;'
-            )
-            .then(({ css }) => {
-              serverRes.end(css)
-            })
-            .catch(() => {
-              serverRes.end(defaultCss)
-            })
-        } catch (_) {
-          serverRes.end(defaultCss)
+    serverRes.end(css)
+  } catch (err) {
+    serverRes.end(defaultCss)
+  }
+}
+
+function get(url) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, res => {
+        if (res.statusCode !== 200) {
+          return reject()
         }
+
+        res.setEncoding('utf8')
+        let rawData = ''
+
+        res.on('data', chunk => {
+          rawData += chunk
+        })
+
+        res.on('end', () => {
+          resolve({ data: rawData, headers: res.headers })
+        })
       })
-    })
-    .on('error', () => {
-      serverRes.end(defaultCss)
-    })
+      .on('error', () => {
+        reject()
+      })
+  })
 }
